@@ -1,4 +1,4 @@
-
+vim.o.number = true
 vim.o.relativenumber = true
 
 vim.o.expandtab = true
@@ -138,9 +138,9 @@ require("lazy").setup({
 				lazy = false, -- neo-tree will lazily load itself
 			},
 			{
-				'akinsho/toggleterm.nvim', 
-				version = "*", 
-				config = true , 
+				'akinsho/toggleterm.nvim',
+				version = "*",
+				config = true ,
 				opts = {
 					size = 20, -- Default size for splits
 					open_mapping = [[<leader>t]], -- Default key to toggle
@@ -149,13 +149,13 @@ require("lazy").setup({
 				},
 			},
 			{
-				'nvim-telescope/telescope-fzf-native.nvim', 
+				'nvim-telescope/telescope-fzf-native.nvim',
 				build = 'make'
 			},
 			{
 				'nvim-telescope/telescope.nvim', tag = 'v0.2.0',
 				dependencies = { 'nvim-lua/plenary.nvim' },
-				config = function() 
+				config = function()
 					require('telescope').setup{
 						pickers = {
 							find_files = {
@@ -165,8 +165,8 @@ require("lazy").setup({
 					}
 					local builtin = require('telescope.builtin')
 
-					vim.keymap.set('n', '<leader>fd', 
-					function() 
+					vim.keymap.set('n', '<leader>fd',
+					function()
 						builtin.find_files({
 							cwd = vim.fn.stdpath("config"),
 							hidden = true
@@ -183,7 +183,7 @@ require("lazy").setup({
                 "mason-org/mason-lspconfig.nvim",
                 dependencies = {
                     { "mason-org/mason.nvim", opts = {} },
-                    "neovim/nvim-lspconfig",  
+                    "neovim/nvim-lspconfig",
                 },
                 opts = {
                     ensure_installed = { "lua_ls", "rust_analyzer" },
@@ -194,6 +194,19 @@ require("lazy").setup({
                     require("mason-lspconfig").setup(opts)
                     vim.diagnostic.config({ virtual_text = true })
                 end,
+            },
+            {"lewis6991/gitsigns.nvim"},
+            {"tpope/vim-fugitive"},
+            {
+                "folke/lazydev.nvim",
+                ft = "lua", -- only load on lua files
+                opts = {
+                    library = {
+                        -- See the configuration section for more details
+                        -- Load luvit types when the `vim.uv` word is found
+                        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+                    },
+                },
             },
         },
         install = { colorscheme = { "habamax" } },
