@@ -148,7 +148,7 @@ require("lazy").setup({
 					-- shade_terminals = false, -- Example option
 				},
 			},
-			{ 
+			{
 				'nvim-telescope/telescope-fzf-native.nvim', 
 				build = 'make'
 			},
@@ -177,35 +177,21 @@ require("lazy").setup({
 					vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
 					vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
 					vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
-				end 
+				end
 			},
             {
                 "mason-org/mason-lspconfig.nvim",
                 dependencies = {
                     { "mason-org/mason.nvim", opts = {} },
-                    "neovim/nvim-lspconfig",  -- Still needed for default server configs
+                    "neovim/nvim-lspconfig",  
                 },
                 opts = {
                     ensure_installed = { "lua_ls", "rust_analyzer" },
-                    automatic_enable = true,  -- This automatically calls vim.lsp.enable() for installed servers
+                    automatic_enable = true,
                 },
                 config = function(_, opts)
                     require("mason").setup()
                     require("mason-lspconfig").setup(opts)
-                    vim.lsp.config('lua_ls', {
-                        settings = {
-                            Lua = {
-                                runtime = { version = 'LuaJIT' },
-                                diagnostics = { globals = { 'vim' } },
-                                workspace = {
-                                    library = vim.api.nvim_get_runtime_file('', true),
-                                    checkThirdParty = false,
-                                },
-                                telemetry = { enable = false },
-                            },
-                        },
-                    })
-                    -- Your global diagnostic config (can go anywhere after plugins load)
                     vim.diagnostic.config({ virtual_text = true })
                 end,
             },
