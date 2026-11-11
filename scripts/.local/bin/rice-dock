@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# (Re)start the dock. Hyprland runs this at login and when a monitor is plugged in, because
+# the dock only puts its hover strip on monitors that existed when it started.
+# The lock makes back-to-back calls run one after another, so exactly one dock is left.
+set -euo pipefail
+exec 9> "${XDG_RUNTIME_DIR:-/tmp}/rice-dock.lock"
+flock 9
+pkill -x nwg-dock-hyprla || true
+while pgrep -x nwg-dock-hyprla >/dev/null; do sleep 0.1; done
+# Top layer, not the default overlay: overlay sits above fullscreen games and its
+# hover strip would eat clicks at the bottom-center of the screen.
+nwg-dock-hyprland -d -i 32 -mb 8 -hd 0 -nolauncher -l top -hl top 9>&- >/dev/null 2>&1 &
+sleep 1   # let it settle before a queued call replaces it

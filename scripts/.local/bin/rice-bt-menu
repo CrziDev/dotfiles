@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
-# Bluetooth menu: unblock + power on the adapter, then open rofi-bluetooth.
-# --prepare-only does the unblock/power step without opening the menu (used by tests).
+# Bluetooth menu (rofi-bluetooth). It doesn't touch the adapter: if bluetooth is off or
+# rfkill-blocked, the menu's own "Power: off" entry unblocks it and powers it on.
 set -euo pipefail
-
-if rfkill list bluetooth | grep -q 'Soft blocked: yes'; then
-  rfkill unblock bluetooth
-  # The adapter takes a moment to come back after an unblock.
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    bluetoothctl show >/dev/null 2>&1 && break
-    sleep 0.3
-  done
-fi
-if ! bluetoothctl show | grep -q 'Powered: yes'; then
-  for _ in 1 2 3 4 5; do
-    bluetoothctl power on >/dev/null 2>&1 && bluetoothctl show | grep -q 'Powered: yes' && break
-    sleep 0.5
-  done
-fi
-[ "${1:-}" = "--prepare-only" ] && exit 0
 
 # Clicking again while a menu is open closes it.
 if pkill -x rofi; then exit 0; fi

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Stand-in for `rofi -dmenu`: appends the offered options to $FAKE_ROFI_LOG.
+# The first call picks $FAKE_ROFI_PICK if it's offered; later calls pick nothing,
+# which closes the calling menu.
+opts=$(cat)
+n=$(awk '/^--- menu$/ { c++ } END { print c + 0 }' "$FAKE_ROFI_LOG" 2>/dev/null)
+printf -- '--- menu\n%s\n' "$opts" >> "$FAKE_ROFI_LOG"
+if [ "${n:-0}" = 0 ] && [ -n "${FAKE_ROFI_PICK:-}" ] && grep -qxF -- "$FAKE_ROFI_PICK" <<< "$opts"; then
+  echo "$FAKE_ROFI_PICK"
+fi
+exit 0

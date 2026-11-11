@@ -52,6 +52,8 @@ tests/check.sh waybar menus               # specific areas
 RICE_UNPLUG_TEST=1 tests/check.sh waybar  # also simulates unplugging HDMI-A-1 (blinks the screen)
 ```
 
+The live checks open and close test windows, move the cursor, restart waybar and briefly block bluetooth.
+
 `protected` fails if anything under `~/Games`, Steam, Lutris or the game CPU cap changed since `tests/protected.baseline` was taken.
 
 ## Restore

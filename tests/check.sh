@@ -21,6 +21,37 @@ hypr_bind() {
   hyprctl binds -j | jq -r --argjson m "$1" --arg k "$2" \
     '.[] | select(.modmask == $m and .key == $k) | "\(.dispatcher) \(.arg)"'
 }
+# layer_on <monitor> <namespace>: that layer surface is mapped on that monitor.
+layer_on() { hyprctl layers -j | jq -e --arg m "$1" --arg n "$2" '.[$m].levels[]?[]? | select(.namespace==$n)' >/dev/null; }
+# open_window <class> <command> [fullscreen]: runs the command, waits for its window, prints its address.
+open_window() {
+  local a=""
+  hyprctl dispatch "hl.dsp.exec_cmd(\"$2\")" >/dev/null
+  for _ in $(seq 1 30); do
+    a=$(hyprctl clients -j | jq -r --arg c "$1" '[.[] | select(.class==$c)][0].address // empty')
+    [ -n "$a" ] && break; timeout 0.2 tail -f /dev/null
+  done
+  [ "${3:-}" = fullscreen ] && hyprctl dispatch "hl.dsp.window.fullscreen({ window = \"address:$a\" })" >/dev/null
+  timeout 0.6 tail -f /dev/null
+  echo "$a"
+}
+# test_window <class> [fullscreen]: a kitty window with that class.
+test_window() { open_window "$1" "kitty --class $1" "${2:-}"; }
+client_get() { hyprctl clients -j | jq -r --arg a "$1" ".[] | select(.address==\$a) | $2"; }
+client_monitor() { hyprctl monitors -j | jq -r --argjson id "$(client_get "$1" .monitor)" '.[] | select(.id==$id) | .name'; }
+close_window() { hyprctl dispatch "hl.dsp.window.close({ window = \"address:$1\" })" >/dev/null; timeout 0.4 tail -f /dev/null; }
+# hold_cursor_on_dock_strip <monitor>: keeps the cursor on the dock's hover strip for ~1s,
+# then puts it back. (Warps don't reliably open the dock itself, so tests never rely on that.)
+hold_cursor_on_dock_strip() {
+  local orig hx hy
+  orig=$(hyprctl cursorpos)
+  read -r hx hy < <(hyprctl layers -j | jq -r --arg m "$1" \
+    '.[$m].levels[]?[]? | select(.namespace=="hotspot") | "\(.x + (.w/2|floor)) \(.y + (.h/2|floor))"')
+  for _ in $(seq 1 15); do
+    hyprctl dispatch "hl.dsp.cursor.move({ x = $hx, y = $hy })" >/dev/null; timeout 0.07 tail -f /dev/null
+  done
+  hyprctl dispatch "hl.dsp.cursor.move({ x = ${orig%%,*}, y = ${orig##*, } })" >/dev/null
+}
 
 # --- protected paths (games, Lutris, CPU cap) ---
 LUTRIS_HOOK_YML="$HOME/.local/share/lutris/games/pathfinder-kingmaker-1794217238.yml"
@@ -135,7 +166,7 @@ wb_restart() {
   hyprctl dispatch "hl.dsp.exec_cmd(\"waybar > $TMP/waybar.log 2>&1\")" >/dev/null
   timeout 4 tail -f /dev/null
 }
-wb_layer_on() { hyprctl layers -j | jq -e --arg m "$1" '.[$m].levels[]?[]? | select(.namespace=="waybar")' >/dev/null; }
+wb_layer_on() { layer_on "$1" waybar; }
 check_waybar() {
   assert_link "$HOME/.config/waybar"
   if ! jq -e . "$WB_CFG" >/dev/null 2>&1; then fail "config parses as JSON (skipping live checks)"; return; fi
@@ -160,10 +191,18 @@ check_waybar() {
     hyprctl eval 'hl.monitor({ output = "HDMI-A-1", disabled = true })' >/dev/null
     timeout 3 tail -f /dev/null
     assert_ok "unplugged: waybar still on eDP-1" wb_layer_on eDP-1
+    assert_ok "unplugged: wallpaper still on eDP-1" bash -c "hyprctl hyprpaper listactive | grep -q '^eDP-1: '"
+    assert_ok "unplugged: dock strip still on eDP-1" layer_on eDP-1 hotspot
     hyprctl dispatch 'hl.dsp.focus({ workspace = 3 })' >/dev/null
     assert_eq "$(hyprctl activeworkspace -j | jq -r .monitor)" "eDP-1" "unplugged: workspace 3 falls back to eDP-1"
     hyprctl reload >/dev/null; timeout 4 tail -f /dev/null
     assert_ok "replugged: HDMI-A-1 back" bash -c "hyprctl monitors -j | jq -e '.[]|select(.name==\"HDMI-A-1\")' >/dev/null"
+    assert_ok "replugged: wallpaper on HDMI-A-1" bash -c "hyprctl hyprpaper listactive | grep -q '^HDMI-A-1: '"
+    assert_ok "replugged: waybar on HDMI-A-1" wb_layer_on HDMI-A-1
+    # The dock is restarted on monitor.added (after a 1s settle), so give it a few seconds.
+    for _ in $(seq 1 20); do layer_on HDMI-A-1 hotspot && break; timeout 0.3 tail -f /dev/null; done
+    assert_ok "replugged: dock strip on HDMI-A-1" layer_on HDMI-A-1 hotspot
+    assert_eq "$(pgrep -cx nwg-dock-hyprla)" "1" "replugged: exactly one dock running"
   fi
   # Review focus 5: no battery -> no battery pill rendered.
   if ! ls /sys/class/power_supply/ | grep -q '^BAT'; then
@@ -174,7 +213,7 @@ check_waybar() {
 BIN="$HOME/.local/bin"
 POWER_TABLE=$'Lock\thyprlock\nLogout\thyprctl dispatch \'hl.dsp.exit()\'\nSuspend\tsystemctl suspend\nReboot\tsystemctl reboot\nShutdown\tsystemctl poweroff'
 check_menus() {
-  local f st bt_was
+  local f st bt_was bt_blocked fb="$TMP/fakebin"
   assert_link "$HOME/.config/rofi"
   assert_ok "launcher theme is ours (620px)" bash -c "rofi -theme launcher -dump-theme | grep -q 620px"
   assert_ok "launcher theme parses" rofi -theme launcher -dump-theme
@@ -186,22 +225,39 @@ check_menus() {
     assert_ok "$f shellcheck clean" shellcheck "$BIN/$f"
   done
   assert_eq "$("$BIN/rice-powermenu" --print-actions)" "$POWER_TABLE" "power menu actions"
-  # Review focus 4 (wifi): radio off -> menu turns it on. Uses a fake nmcli so the
-  # real connection (and this session) never drops.
-  st="$TMP/nmcli-state"; rm -f "$st" "$st.log"; echo disabled > "$st"
-  FAKE_NMCLI_STATE="$st" RICE_NMCLI="$DOT/tests/fixtures/fake-nmcli" RICE_NO_UI=1 "$BIN/rice-wifi-menu"
-  assert_eq "$(cat "$st")" "enabled" "wifi off: menu turns radio on"
-  echo enabled > "$st"; rm -f "$st.log"
-  FAKE_NMCLI_STATE="$st" RICE_NMCLI="$DOT/tests/fixtures/fake-nmcli" RICE_NO_UI=1 "$BIN/rice-wifi-menu"
-  assert_fail "wifi on: menu doesn't toggle radio" grep -q 'radio wifi on' "$st.log"
-  # Review focus 4 (bluetooth): rfkill-blocked -> menu unblocks and powers on. Real radio.
+  # Review focus 4: opening a menu never turns a radio on by itself (an "off" sticks);
+  # each menu has its own entry that turns the radio back on.
+  rm -rf "$fb"; mkdir -p "$fb"
+  ln -s "$DOT/tests/fixtures/fake-nmcli" "$fb/nmcli"
+  ln -s "$DOT/tests/fixtures/fake-rofi" "$fb/rofi"
+  printf '#!/bin/sh\necho opened >> "$FAKE_MENU_LOG"\n' > "$fb/networkmanager_dmenu"; chmod +x "$fb/networkmanager_dmenu"
+  # Wifi: fake nmcli and menu, so the real connection (and this session) never drops.
+  st="$TMP/nmcli-state"; rm -f "$st" "$st.log" "$TMP/menu.log"; echo disabled > "$st"
+  PATH="$fb:$PATH" FAKE_NMCLI_STATE="$st" FAKE_MENU_LOG="$TMP/menu.log" "$BIN/rice-wifi-menu"
+  assert_eq "$(cat "$st")" "disabled" "wifi off: opening the menu leaves it off"
+  assert_ok "wifi off: menu still opens" grep -q opened "$TMP/menu.log"
+  # The real wifi menu, with our config but a fake rofi, offers the on/off entry.
+  sed "s|^dmenu_command = .*|dmenu_command = $fb/rofi|" "$HOME/.config/networkmanager-dmenu/config.ini" > "$TMP/nm-dmenu.ini"
+  rm -f "$TMP/rofi.log"
+  NM_DMENU_CONFIG="$TMP/nm-dmenu.ini" FAKE_ROFI_LOG="$TMP/rofi.log" timeout 15 networkmanager_dmenu >/dev/null 2>&1
+  assert_ok "wifi menu has its own WiFi on/off entry" grep -qxE '(Enable|Disable) WiFi' "$TMP/rofi.log"
+  # Bluetooth: real radio, fake rofi.
   if [ ! -x "$BIN/rice-bt-menu" ]; then fail "bt test skipped: rice-bt-menu missing"; return; fi
   bt_was=$(bluetoothctl show | awk '/Powered:/ {print $2}')
+  bt_blocked=$(rfkill list bluetooth | grep -c 'Soft blocked: yes')
   rfkill block bluetooth; timeout 1 tail -f /dev/null
-  "$BIN/rice-bt-menu" --prepare-only
-  assert_eq "$(rfkill list bluetooth | grep -c 'Soft blocked: yes')" "0" "bt blocked: menu unblocks"
-  assert_eq "$(bluetoothctl show | awk '/Powered:/ {print $2}')" "yes" "bt blocked: menu powers on"
+  rm -f "$TMP/rofi.log"
+  PATH="$fb:$PATH" FAKE_ROFI_LOG="$TMP/rofi.log" "$BIN/rice-bt-menu" >/dev/null 2>&1
+  assert_ok "bt blocked: opening the menu leaves it blocked" bash -c "rfkill list bluetooth | grep -q 'Soft blocked: yes'"
+  assert_ok "bt blocked: menu offers 'Power: off'" grep -qx 'Power: off' "$TMP/rofi.log"
+  rm -f "$TMP/rofi.log"
+  PATH="$fb:$PATH" FAKE_ROFI_LOG="$TMP/rofi.log" FAKE_ROFI_PICK="Power: off" "$BIN/rice-bt-menu" >/dev/null 2>&1
+  for _ in $(seq 1 10); do bluetoothctl show | grep -q 'Powered: yes' && break; timeout 0.5 tail -f /dev/null; done
+  assert_eq "$(rfkill list bluetooth | grep -c 'Soft blocked: yes')" "0" "bt: picking 'Power: off' unblocks"
+  assert_eq "$(bluetoothctl show | awk '/Powered:/ {print $2}')" "yes" "bt: picking 'Power: off' powers on"
   [ "$bt_was" = "no" ] && bluetoothctl power off >/dev/null
+  [ "$bt_blocked" != 0 ] && rfkill block bluetooth
+  return 0
 }
 
 check_files() {
@@ -230,7 +286,7 @@ check_files() {
 }
 
 check_idle() {
-  local c p
+  local c p a
   for c in "ps-ac-only:skip" "ps-bat-discharging:suspend" "ps-bat-charging:skip"; do
     assert_eq "$(RICE_PS_ROOT="$DOT/tests/fixtures/${c%%:*}" "$BIN/rice-idle-suspend" --dry-run 2>&1)" "${c#*:}" "idle-suspend ${c%%:*} -> ${c#*:}"
   done
@@ -245,17 +301,19 @@ check_idle() {
   assert_ok "swaync running" pgrep -x swaync
   assert_ok "swaync reloads config + css" bash -c "swaync-client -R && swaync-client -rs"
   assert_link "$HOME/.config/swaync"
-  # Review focus 2: fullscreen video/game inhibits idle.
-  hyprctl dispatch "hl.dsp.exec_cmd(\"mpv --fs --loop --no-audio $TMP/files/a.mp4\")" >/dev/null
-  for _ in $(seq 1 20); do hyprctl clients -j | jq -e '.[]|select(.class=="mpv")' >/dev/null && break; timeout 0.3 tail -f /dev/null; done
-  timeout 1.5 tail -f /dev/null
-  assert_eq "$(hyprctl clients -j | jq -r '[.[]|select(.class=="mpv")][0] | (.inhibitingIdle // .inhibiting_idle) | tostring')" "true" "fullscreen mpv inhibits idle"
-  pkill -x mpv
+  # Review focus 2: our window rules (not the app) keep a fullscreen window or a focused
+  # game from dimming/locking. kitty never inhibits idle by itself, which the first check proves.
+  a=$(test_window rice-test-plain)
+  assert_eq "$(client_get "$a" .inhibitingIdle)" "false" "plain window doesn't inhibit idle"; close_window "$a"
+  a=$(test_window rice-test-fs fullscreen)
+  assert_eq "$(client_get "$a" .inhibitingIdle)" "true" "fullscreen window inhibits idle"; close_window "$a"
+  a=$(test_window rice-test.exe)
+  assert_eq "$(client_get "$a" .inhibitingIdle)" "true" "focused game window (.exe) inhibits idle"; close_window "$a"
 }
 
 WALL="$DOT/wallpapers/mountains-gray.jpg"
 check_desktop() {
-  local m sat
+  local m sat a top bot
   for m in $(hyprctl monitors -j | jq -r '.[].name'); do
     assert_ok "wallpaper on $m" bash -c "hyprctl hyprpaper listactive | grep -qx '$m: $WALL'"
   done
@@ -263,12 +321,31 @@ check_desktop() {
   assert_ok "wallpaper is grayscale (SATAVG=$sat)" awk -v s="$sat" 'BEGIN { exit !(s < 1) }'
   assert_ok "wallpaper source recorded" grep -q 'unsplash' "$DOT/wallpapers/SOURCE.md"
   assert_ok "hyprlock uses the wallpaper" grep -qE "^\s*path\s*=\s*~/dotfiles/wallpapers/mountains-gray.jpg" "$HYPR_DIR/hyprlock.conf"
-  assert_ok "dock running" pgrep -x nwg-dock-hyprla
+  assert_eq "$(pgrep -cx nwg-dock-hyprla)" "1" "exactly one dock running"
+  assert_ok "rice-dock shellcheck clean" shellcheck "$BIN/rice-dock"
+  assert_ok "autostart starts the dock via rice-dock" \
+    bash -c "grep -qE '^local dock = .*rice-dock\"' '$HYPR_DIR/autostart.lua' && grep -qE '^\s+hl\.exec_cmd\(dock\)' '$HYPR_DIR/autostart.lua'"
+  assert_ok "dock restarts when a monitor is plugged in" grep -qE 'hl\.on\("monitor\.added"' "$HYPR_DIR/autostart.lua"
   assert_eq "$(wc -l < "$HOME/.cache/nwg-dock-pinned")" "5" "dock has 5 pins"
   while read -r app; do
     assert_ok "pin $app has a desktop file" test -f "/usr/share/applications/$app.desktop"
   done < "$HOME/.cache/nwg-dock-pinned"
   assert_link "$HOME/.config/nwg-dock-hyprland"
+  # Games: the dock's hover strip must stay below fullscreen windows. On the overlay layer
+  # it takes the pointer, so clicks there never reach the game. wev logs the pointer
+  # events it gets; a fullscreen wev must see motion on the strip's rows.
+  assert_eq "$(hyprctl layers -j | jq '[.[].levels["3"][]? | select(.namespace=="hotspot" or .namespace=="nwg-dock")] | length')" "0" "dock not on the overlay layer"
+  rm -f "$TMP/wev.log"
+  a=$(open_window wev "wev -f wl_pointer > $TMP/wev.log 2>&1" fullscreen); m=$(client_monitor "$a")
+  read -r top bot < <(hyprctl layers -j | jq -r --arg m "$m" --argjson wy "$(client_get "$a" '.at[1]')" \
+    '.[$m].levels[]?[]? | select(.namespace=="hotspot") | "\(.y - $wy) \(.y - $wy + .h)"')
+  hold_cursor_on_dock_strip "$m"
+  close_window "$a"
+  assert_ok "fullscreen: pointer on the dock strip still reaches the window" \
+    awk -v t="$top" -v b="$bot" '/motion:/ { if ($NF >= t && $NF <= b) f = 1 } END { exit !f }' "$TMP/wev.log"
+  for m in $(hyprctl monitors -j | jq -r '.[].name'); do
+    assert_ok "dock hover strip on $m" layer_on "$m" hotspot
+  done
   assert_ok "autostart starts hyprpaper via systemd after env import" grep -qE 'dbus-update-activation-environment.*' "$HYPR_DIR/autostart.lua"
   assert_ok "  ...in the same chain" grep -qE 'systemctl --user start [a-z ]*hyprpaper' "$HYPR_DIR/autostart.lua"
 }

@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
-# Wifi menu: make sure the radio is on, then open networkmanager-dmenu (rofi).
-# RICE_NO_UI=1 stops after the radio step (used by tests). RICE_NMCLI overrides nmcli (tests).
+# Wifi menu (networkmanager-dmenu in rofi). It doesn't touch the radio: if wifi is off,
+# the menu's own "Enable WiFi" entry turns it on.
 set -euo pipefail
-nmcli_cmd=${RICE_NMCLI:-nmcli}
-
-if [ "$("$nmcli_cmd" radio wifi)" != "enabled" ]; then
-  "$nmcli_cmd" radio wifi on
-fi
-[ "${RICE_NO_UI:-0}" = 1 ] && exit 0
 
 # Clicking again while a menu is open closes it.
 if pkill -x rofi; then exit 0; fi
