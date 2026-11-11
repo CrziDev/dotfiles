@@ -73,7 +73,7 @@ check_backup() {
   for p in .config/hypr/hyprland.conf .config/waybar/config.jsonc .config/waybar/style.css \
            .config/rofi/config.rasi .config/kitty .config/networkmanager-dmenu/config.ini \
            .config/mimeapps.list .config/dolphinrc .config/mpv .bashrc; do
-    assert_ok "backup has $p" test -e "$HOME/config-backup-2026-11-11/$p"
+    assert_ok "backup has $p" test -e "$HOME/Documents/Backups/config-backup-2026-11-11/$p"
   done
   assert_ok "dotfiles is a git repo" git -C "$DOT" rev-parse
   assert_ok "RESTORE.md exists" test -s "$DOT/RESTORE.md"
@@ -372,7 +372,8 @@ check_terminal() {
   assert_link "$HOME/.config/fastfetch"
   assert_ok "fastfetch runs with config" bash -c "fastfetch -c '$HOME/.config/fastfetch/config.jsonc' --pipe 2>&1 | grep -q Hyprland"
   assert_eq "$(grep -c '^# >>> rice >>>' "$HOME/.bashrc")" "1" "bashrc has one rice block"
-  assert_eq "$(sed '/^# >>> rice >>>/,/^# <<< rice <<</d' "$HOME/.bashrc" | diff - "$HOME/config-backup-2026-11-11/.bashrc" && echo same)" "same" "bashrc otherwise unchanged"
+  assert_fail "bashrc has no inline secrets" grep -qE '^export [A-Z_]*(KEY|PASSWORD|_URL)=' "$HOME/.bashrc"
+  assert_ok "bashrc sources secrets.env" grep -qF '.config/secrets.env' "$HOME/.bashrc"
   assert_eq "$(bash -ic 'type -t starship_precmd' 2>/dev/null)" "function" "interactive bash loads starship"
 }
 

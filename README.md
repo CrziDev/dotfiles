@@ -58,6 +58,6 @@ The live checks open and close test windows, move the cursor, restart waybar and
 
 ## Restore
 
-See `RESTORE.md`. Old configs are in `~/config-backup-2026-11-11/`.
+See `RESTORE.md`. Old configs are in `~/Documents/Backups/config-backup-2026-11-11/`.
 
 Note: `arc-gtk-theme` from the AUR doesn't build as-is (GNOME Shell theme step). Build it with `-Dthemes=gtk2,gtk3,gtk4,xfwm` in the PKGBUILD.

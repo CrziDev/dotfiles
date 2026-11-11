@@ -1,6 +1,6 @@
 # Restore the old desktop
 
-The configs from before the rice are in `~/config-backup-2026-11-11/`, with the same
+The configs from before the rice are in `~/Documents/Backups/config-backup-2026-11-11/`, with the same
 paths as under `$HOME`.
 
 If something looks broken:
@@ -16,7 +16,7 @@ If something looks broken:
 3. Put the old configs back (skipping `hypr`):
 
    ```bash
-   cd ~/config-backup-2026-11-11
+   cd ~/Documents/Backups/config-backup-2026-11-11
    cp -a .bashrc ~/
    for d in .config/*; do [ "$d" = .config/hypr ] || cp -a "$d" ~/.config/; done
    ```
