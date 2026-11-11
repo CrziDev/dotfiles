@@ -74,6 +74,36 @@ check_palette() {
   done
 }
 
+HYPR_DIR="$HOME/.config/hypr"
+# Static checks: work before the reboot into Hyprland 0.57 (Lua config).
+check_hypr() {
+  local out f
+  assert_link "$HYPR_DIR"
+  out=$(Hyprland --verify-config -c "$HYPR_DIR/hyprland.lua" 2>&1 | sed -n '/Config parsing result/,$p' | tail -n +2 | tr -d '\n ')
+  assert_eq "$out" "configok" "hyprland.lua verifies clean"
+  assert_fail "no legacy hyprland.conf left" test -e "$HYPR_DIR/hyprland.conf"
+  for f in env monitors input look rules keybinds autostart; do
+    assert_ok "hyprland.lua requires $f" grep -qE "^require\(\"$f\"\)" "$HYPR_DIR/hyprland.lua"
+  done
+  # Keybind table: each SUPER combo bound exactly once (duplicate-bind guard).
+  out=$(grep -oE 'mainMod \.\. " \+ [A-Za-z0-9_:]+"' "$HYPR_DIR/keybinds.lua" | sort | uniq -d)
+  assert_eq "$out" "" "no SUPER combo bound twice"
+  for k in Q C M E V B R SPACE J S P L X N; do
+    assert_ok "SUPER+$k is bound" grep -qE "mainMod \.\. \" \+ $k\"" "$HYPR_DIR/keybinds.lua"
+  done
+  assert_ok "SUPER+S is special workspace" grep -qE '" \+ S",.*toggle_special' "$HYPR_DIR/keybinds.lua"
+  assert_ok "SUPER+P is screenshot" grep -qE '" \+ P",.*hyprshot -m output' "$HYPR_DIR/keybinds.lua"
+  assert_ok "workspace 3 -> HDMI-A-1" grep -qE 'HDMI-A-1' "$HYPR_DIR/monitors.lua"
+}
+# Live checks: need the running compositor to be 0.57 with this config (after reboot).
+check_hyprlive() {
+  assert_ok "running Hyprland is 0.57+" bash -c 'hyprctl version | grep -qE "Hyprland 0\.(5[7-9]|[6-9][0-9])"'
+  assert_eq "$(hyprctl configerrors | tr -d '[:space:]')" "" "no live config errors"
+  assert_eq "$(hyprctl workspacerules -j | jq -r '[.[]|select(.workspaceString=="3")][0].monitor')" "HDMI-A-1" "ws3 on HDMI"
+  assert_eq "$(hyprctl getoption general:gaps_out -j | jq -r '.custom // .str // .int' | tr -d ' ')" "10101010" "gaps_out 10"
+  assert_ok "SUPER+Q bound to kitty" bash -c "hyprctl binds -j | jq -e '.[] | select(.modmask==64 and .key==\"Q\") | (.arg|test(\"kitty\"))' >/dev/null"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
