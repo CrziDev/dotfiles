@@ -1,0 +1,19 @@
+# Minimal two-part prompt like the reference: ">>>  ~"
+# Colors are terminal ANSI names, which kitty maps to the rice palette.
+add_newline = false
+format = "$character$directory$git_branch"
+
+[character]
+success_symbol = "[>>>](bold blue) "
+error_symbol   = "[>>>](bold red) "
+
+[directory]
+format            = "[ $path]($style)[$read_only]($read_only_style) "
+style             = "cyan"
+truncation_length = 3
+read_only         = " "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style  = "purple"

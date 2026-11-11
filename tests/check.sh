@@ -273,6 +273,23 @@ check_desktop() {
   assert_ok "  ...in the same chain" grep -qE 'systemctl --user start [a-z ]*hyprpaper' "$HYPR_DIR/autostart.lua"
 }
 
+check_terminal() {
+  local err
+  assert_link "$HOME/.config/kitty"
+  err=$(kitty +runpy 'import os,sys; from kitty.config import load_config; load_config(os.path.expanduser("~/.config/kitty/kitty.conf"))' 2>&1 >/dev/null)
+  assert_eq "$err" "" "kitty.conf loads without warnings"
+  assert_ok "kitty keeps remote control" grep -qx 'allow_remote_control yes' "$HOME/.config/kitty/kitty.conf"
+  assert_ok "kitty includes palette" grep -qx 'include colors.conf' "$HOME/.config/kitty/kitty.conf"
+  assert_link "$HOME/.config/starship.toml"
+  err=$(STARSHIP_SHELL=bash starship prompt 2>&1 >/dev/null)
+  assert_eq "$err" "" "starship renders without warnings"
+  assert_link "$HOME/.config/fastfetch"
+  assert_ok "fastfetch runs with config" bash -c "fastfetch -c '$HOME/.config/fastfetch/config.jsonc' --pipe 2>&1 | grep -q Hyprland"
+  assert_eq "$(grep -c '^# >>> rice >>>' "$HOME/.bashrc")" "1" "bashrc has one rice block"
+  assert_eq "$(sed '/^# >>> rice >>>/,/^# <<< rice <<</d' "$HOME/.bashrc" | diff - "$HOME/config-backup-2026-11-11/.bashrc" && echo same)" "same" "bashrc otherwise unchanged"
+  assert_eq "$(bash -ic 'type -t starship_precmd' 2>/dev/null)" "function" "interactive bash loads starship"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
