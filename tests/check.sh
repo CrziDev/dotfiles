@@ -290,6 +290,17 @@ check_terminal() {
   assert_eq "$(bash -ic 'type -t starship_precmd' 2>/dev/null)" "function" "interactive bash loads starship"
 }
 
+check_cleanup() {
+  local p
+  assert_fail "dolphin removed" pacman -Q dolphin
+  assert_fail "iwd removed" pacman -Q iwd
+  for p in steam lutris wine-staging mangohud networkmanager nvidia-utils thunar; do
+    assert_ok "still installed: $p" pacman -Q "$p"
+  done
+  assert_eq "$(systemctl is-active NetworkManager bluetooth | tr '\n' ' ')" "active active " "NetworkManager + bluetooth active"
+  assert_eq "$(nmcli -t -f STATE general)" "connected" "network connected"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
