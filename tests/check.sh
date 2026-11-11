@@ -100,8 +100,10 @@ check_hyprlive() {
   assert_ok "running Hyprland is 0.57+" bash -c 'hyprctl version | grep -qE "Hyprland 0\.(5[7-9]|[6-9][0-9])"'
   assert_eq "$(hyprctl configerrors | tr -d '[:space:]')" "" "no live config errors"
   assert_eq "$(hyprctl workspacerules -j | jq -r '[.[]|select(.workspaceString=="3")][0].monitor')" "HDMI-A-1" "ws3 on HDMI"
-  assert_eq "$(hyprctl getoption general:gaps_out -j | jq -r '.custom // .str // .int' | tr -d ' ')" "10101010" "gaps_out 10"
-  assert_ok "SUPER+Q bound to kitty" bash -c "hyprctl binds -j | jq -e '.[] | select(.modmask==64 and .key==\"Q\") | (.arg|test(\"kitty\"))' >/dev/null"
+  assert_eq "$(hyprctl getoption general:gaps_out -j | jq -r '.css // .custom // .str // .int' | tr -d ' ')" "10101010" "gaps_out 10"
+  # 0.57 binds -j shows only an opaque handle in .arg; command text is checked statically in check_hypr.
+  assert_eq "$(hyprctl binds -j | jq -r '[.[] | select(.modmask==64 and .key=="Q")] | map(.dispatcher) | join(",")')" "HL.Dispatcher(exec_cmd)" "SUPER+Q bound once to exec_cmd"
+  assert_eq "$(hyprctl binds -j | jq -r '[.[] | select(.modmask==64) | .key] | group_by(.) | map(select(length>1)[0]) | join(",")')" "" "no live SUPER combo bound twice"
 }
 
 # --- runner ---
