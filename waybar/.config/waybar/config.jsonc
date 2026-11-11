@@ -1,0 +1,185 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 34,
+  "spacing": 0,
+  "modules-left": [
+    "custom/launcher",
+    "hyprland/workspaces",
+    "group/stats"
+  ],
+  "modules-center": [
+    "clock",
+    "group/media"
+  ],
+  "modules-right": [
+    "group/audio",
+    "backlight",
+    "network",
+    "bluetooth",
+    "battery",
+    "custom/power"
+  ],
+  "custom/launcher": {
+    "format": "",
+    "tooltip": false,
+    "on-click": "rofi -show drun -theme launcher"
+  },
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "active": "",
+      "urgent": "",
+      "default": ""
+    }
+  },
+  "group/stats": {
+    "orientation": "horizontal",
+    "modules": [
+      "cpu",
+      "memory",
+      "disk",
+      "temperature"
+    ]
+  },
+  "cpu": {
+    "format": "󰻠  {usage}%",
+    "interval": 3
+  },
+  "memory": {
+    "format": "󰍛  {used:0.1f}G",
+    "interval": 5,
+    "tooltip-format": "{used:0.1f} / {total:0.1f} GiB"
+  },
+  "disk": {
+    "format": "󰋊  {free}",
+    "interval": 60,
+    "paths": [
+      "/"
+    ]
+  },
+  "temperature": {
+    "hwmon-path-abs": "/sys/devices/pci0000:00/0000:00:18.3/hwmon",
+    "input-filename": "temp1_input",
+    "critical-threshold": 85,
+    "format": " {temperatureC}°C",
+    "interval": 3,
+    "tooltip-format": "CPU (Tctl) {temperatureC}°C"
+  },
+  "clock": {
+    "format": "󰥔  {:%I:%M %p}",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "on-click-right": "swaync-client -t -sw"
+  },
+  "group/media": {
+    "orientation": "horizontal",
+    "modules": [
+      "custom/media-prev",
+      "mpris",
+      "custom/media-next"
+    ]
+  },
+  "custom/media-prev": {
+    "format": "󰒮",
+    "exec": "echo prev",
+    "exec-if": "playerctl status",
+    "interval": 2,
+    "tooltip": false,
+    "on-click": "playerctl previous"
+  },
+  "mpris": {
+    "format": "{status_icon}  {title}",
+    "title-len": 28,
+    "status-icons": {
+      "playing": "󰏤",
+      "paused": "󰐊",
+      "stopped": "󰐊"
+    },
+    "on-click": "playerctl play-pause"
+  },
+  "custom/media-next": {
+    "format": "󰒭",
+    "exec": "echo next",
+    "exec-if": "playerctl status",
+    "interval": 2,
+    "tooltip": false,
+    "on-click": "playerctl next"
+  },
+  "group/audio": {
+    "orientation": "horizontal",
+    "modules": [
+      "pulseaudio",
+      "pulseaudio/slider"
+    ]
+  },
+  "pulseaudio": {
+    "format": "{icon}",
+    "format-muted": "󰖁",
+    "format-icons": {
+      "default": [
+        "󰕿",
+        "󰖀",
+        "󰕾"
+      ]
+    },
+    "tooltip-format": "{desc} · {volume}%",
+    "on-click": "pavucontrol",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+  },
+  "pulseaudio/slider": {
+    "min": 0,
+    "max": 100,
+    "orientation": "horizontal"
+  },
+  "backlight": {
+    "device": "amdgpu_bl1",
+    "format": "{icon} {percent}%",
+    "format-icons": [
+      "󰃛",
+      "󰃟",
+      "󰃠"
+    ],
+    "on-scroll-up": "brightnessctl -e4 -n2 set 5%+",
+    "on-scroll-down": "brightnessctl -e4 -n2 set 5%-"
+  },
+  "network": {
+    "format-wifi": "󰤨  {essid}",
+    "format-ethernet": "󰈀  wired",
+    "format-disconnected": "󰤭  offline",
+    "format-disabled": "󰤭  off",
+    "tooltip-format-wifi": "{essid} · {signalStrength}% · {ipaddr}",
+    "tooltip-format-ethernet": "{ifname} · {ipaddr}",
+    "on-click": "$HOME/.local/bin/rice-wifi-menu",
+    "on-click-right": "nm-connection-editor"
+  },
+  "bluetooth": {
+    "format": "󰂯",
+    "format-disabled": "󰂲",
+    "format-off": "󰂲",
+    "format-connected": "󰂱 {device_alias}",
+    "tooltip-format-connected": "{device_enumerate}",
+    "tooltip-format-enumerate-connected": "{device_alias}",
+    "on-click": "$HOME/.local/bin/rice-bt-menu",
+    "on-click-right": "blueman-manager"
+  },
+  "battery": {
+    "states": {
+      "warning": 25,
+      "critical": 10
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-icons": [
+      "󰁺",
+      "󰁼",
+      "󰁾",
+      "󰂀",
+      "󰁹"
+    ]
+  },
+  "custom/power": {
+    "format": "⏻",
+    "tooltip": false,
+    "on-click": "$HOME/.local/bin/rice-powermenu"
+  }
+}

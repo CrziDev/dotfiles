@@ -1,0 +1,99 @@
+@import "colors.css";
+
+* {
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: @bg;
+    color: @fg;
+}
+
+tooltip {
+    background: @surface;
+    border: 1px solid @muted;
+    border-radius: 8px;
+}
+tooltip label { color: @fg; }
+
+/* Every top-level module or group is a pill. */
+.modules-left > widget > *,
+.modules-center > widget > *,
+.modules-right > widget > * {
+    background: @raised;
+    border-radius: 8px;
+    margin: 4px 3px;
+    padding: 0 10px;
+}
+.modules-left > widget:first-child > * { margin-left: 8px; }
+.modules-right > widget:last-child > * { margin-right: 8px; }
+
+/* Modules inside a group pill: spacing only. */
+#cpu, #memory, #disk, #temperature,
+#custom-media-prev, #mpris, #custom-media-next,
+#pulseaudio, #pulseaudio-slider {
+    background: transparent;
+    margin: 0;
+    padding: 0 6px;
+}
+
+#custom-launcher { color: @accent; font-size: 16px; padding: 0 12px; }
+
+#workspaces { padding: 0 4px; }
+#workspaces button {
+    color: @accent;
+    background: transparent;
+    padding: 0 4px;
+    box-shadow: none;
+    text-shadow: none;
+}
+#workspaces button.active { color: @green; }
+#workspaces button.urgent { color: @red; }
+#workspaces button:hover { background: transparent; color: @fg; }
+
+#cpu         { color: @green; }
+#memory      { color: @teal; }
+#disk        { color: @magenta; }
+#temperature { color: @orange; }
+#temperature.critical { color: @red; }
+
+#clock { color: @fg; }
+#clock:hover { color: @accent; }
+#custom-media-prev, #custom-media-next { color: @accent; }
+#mpris { color: @fg; }
+#mpris.paused { color: @subtext; }
+
+#pulseaudio { color: @accent; }
+#pulseaudio.muted { color: @subtext; }
+#pulseaudio-slider { min-width: 100px; }
+#pulseaudio-slider slider {
+    min-height: 0;
+    min-width: 0;
+    background: @accent;
+    border-radius: 6px;
+    box-shadow: none;
+}
+#pulseaudio-slider trough {
+    min-height: 4px;
+    min-width: 90px;
+    background: @muted;
+    border-radius: 4px;
+}
+#pulseaudio-slider highlight {
+    background: @accent;
+    border-radius: 4px;
+}
+
+#backlight { color: @yellow; }
+#network   { color: @fg; }
+#network.disconnected, #network.disabled { color: @subtext; }
+#bluetooth { color: @accent; }
+#bluetooth.off, #bluetooth.disabled { color: @subtext; }
+#battery { color: @green; }
+#battery.warning  { color: @yellow; }
+#battery.critical { color: @red; }
+#custom-power { color: @red; padding: 0 12px; }

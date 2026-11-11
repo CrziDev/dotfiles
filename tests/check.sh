@@ -125,6 +125,49 @@ check_theme() {
   assert_ok "rice-apply-theme is executable" test -x "$HOME/.local/bin/rice-apply-theme"
 }
 
+WB_CFG="$HOME/.config/waybar/config.jsonc"
+# Flatten modules-<pos>, expanding group/* into their member modules.
+wb_modules() {
+  jq -r --arg pos "modules-$1" '. as $c | [ .[$pos][] | if startswith("group/") then $c[.].modules[] else . end ] | join(",")' "$WB_CFG"
+}
+wb_restart() {
+  pkill -x waybar; timeout 1 tail -f /dev/null
+  hyprctl dispatch "hl.dsp.exec_cmd(\"waybar > $TMP/waybar.log 2>&1\")" >/dev/null
+  timeout 4 tail -f /dev/null
+}
+wb_layer_on() { hyprctl layers -j | jq -e --arg m "$1" '.[$m].levels[]?[]? | select(.namespace=="waybar")' >/dev/null; }
+check_waybar() {
+  assert_link "$HOME/.config/waybar"
+  if ! jq -e . "$WB_CFG" >/dev/null 2>&1; then fail "config parses as JSON (skipping live checks)"; return; fi
+  pass "config parses as JSON"
+  assert_eq "$(wb_modules left)" "custom/launcher,hyprland/workspaces,cpu,memory,disk,temperature" "left modules"
+  assert_eq "$(wb_modules center)" "clock,custom/media-prev,mpris,custom/media-next" "center modules"
+  assert_eq "$(wb_modules right)" "pulseaudio,pulseaudio/slider,backlight,network,bluetooth,battery,custom/power" "right modules"
+  assert_eq "$(jq -r 'has("output")' "$WB_CFG")" "false" "bar on every monitor (no output key)"
+  assert_eq "$(jq -r '.temperature["hwmon-path-abs"]' "$WB_CFG")" "/sys/devices/pci0000:00/0000:00:18.3/hwmon" "temp uses k10temp path"
+  assert_eq "$(jq -r '.temperature["critical-threshold"]' "$WB_CFG")" "85" "temp critical at 85"
+  wb_restart
+  assert_ok "waybar running" pgrep -x waybar
+  # A missing battery is reported once by waybar; every other [error] is a real problem.
+  assert_eq "$(grep '\[error\]' "$TMP/waybar.log" | grep -viE 'batter' | head -3)" "" "no waybar errors"
+  assert_ok "waybar layer on eDP-1" wb_layer_on eDP-1
+  if hyprctl monitors -j | jq -e '.[]|select(.name=="HDMI-A-1")' >/dev/null; then
+    assert_ok "waybar layer on HDMI-A-1" wb_layer_on HDMI-A-1
+    # Review focus 3: external monitor unplugged.
+    hyprctl eval 'hl.monitor({ output = "HDMI-A-1", disabled = true })' >/dev/null
+    timeout 3 tail -f /dev/null
+    assert_ok "unplugged: waybar still on eDP-1" wb_layer_on eDP-1
+    hyprctl dispatch 'hl.dsp.focus({ workspace = 3 })' >/dev/null
+    assert_eq "$(hyprctl activeworkspace -j | jq -r .monitor)" "eDP-1" "unplugged: workspace 3 falls back to eDP-1"
+    hyprctl reload >/dev/null; timeout 4 tail -f /dev/null
+    assert_ok "replugged: HDMI-A-1 back" bash -c "hyprctl monitors -j | jq -e '.[]|select(.name==\"HDMI-A-1\")' >/dev/null"
+  fi
+  # Review focus 5: no battery -> no battery pill rendered.
+  if ! ls /sys/class/power_supply/ | grep -q '^BAT'; then
+    assert_ok "no battery: battery module not shown" grep -qiE 'batter' "$TMP/waybar.log"
+  fi
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
