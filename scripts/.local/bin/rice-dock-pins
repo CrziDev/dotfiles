@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Write the dock's pinned apps: terminal, files, browser, Steam, Lutris.
+set -euo pipefail
+apps=/usr/share/applications
+browser=
+for b in firefox google-chrome chromium; do
+  if [ -f "$apps/$b.desktop" ]; then browser=$b; break; fi
+done
+mkdir -p "$HOME/.cache"
+printf '%s\n' kitty thunar ${browser:+"$browser"} steam net.lutris.Lutris > "$HOME/.cache/nwg-dock-pinned"

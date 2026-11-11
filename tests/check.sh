@@ -253,6 +253,26 @@ check_idle() {
   pkill -x mpv
 }
 
+WALL="$DOT/wallpapers/mountains-gray.jpg"
+check_desktop() {
+  local m sat
+  for m in $(hyprctl monitors -j | jq -r '.[].name'); do
+    assert_ok "wallpaper on $m" bash -c "hyprctl hyprpaper listactive | grep -qx '$m: $WALL'"
+  done
+  sat=$(ffprobe -v error -f lavfi "movie=$WALL,signalstats" -show_entries frame_tags=lavfi.signalstats.SATAVG -of csv=p=0 | head -1)
+  assert_ok "wallpaper is grayscale (SATAVG=$sat)" awk -v s="$sat" 'BEGIN { exit !(s < 1) }'
+  assert_ok "wallpaper source recorded" grep -q 'unsplash' "$DOT/wallpapers/SOURCE.md"
+  assert_ok "hyprlock uses the wallpaper" grep -qE "^\s*path\s*=\s*~/dotfiles/wallpapers/mountains-gray.jpg" "$HYPR_DIR/hyprlock.conf"
+  assert_ok "dock running" pgrep -x nwg-dock-hyprla
+  assert_eq "$(wc -l < "$HOME/.cache/nwg-dock-pinned")" "5" "dock has 5 pins"
+  while read -r app; do
+    assert_ok "pin $app has a desktop file" test -f "/usr/share/applications/$app.desktop"
+  done < "$HOME/.cache/nwg-dock-pinned"
+  assert_link "$HOME/.config/nwg-dock-hyprland"
+  assert_ok "autostart starts hyprpaper via systemd after env import" grep -qE 'dbus-update-activation-environment.*' "$HYPR_DIR/autostart.lua"
+  assert_ok "  ...in the same chain" grep -qE 'systemctl --user start [a-z ]*hyprpaper' "$HYPR_DIR/autostart.lua"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")

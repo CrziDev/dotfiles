@@ -1,0 +1,26 @@
+@import url("colors.css");
+
+window {
+    background: alpha(@bg, 0.85);
+    border-radius: 10px;
+    border: 1px solid @muted;
+}
+
+#box { padding: 6px 8px; }
+
+/* Underline for apps with an open window */
+#active { border-bottom: 2px solid @accent; }
+
+button, image {
+    background: none;
+    border-style: none;
+    box-shadow: none;
+    color: @fg;
+}
+button {
+    padding: 4px;
+    margin: 0 3px;
+    border-radius: 8px;
+}
+button:hover { background-color: @raised; }
+button:focus { box-shadow: none; }
