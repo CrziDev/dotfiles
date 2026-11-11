@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Suspend after long idle, but only when running on a discharging battery.
+# On AC power, or with no battery at all, do nothing.
+# --dry-run prints "suspend" or "skip" instead of acting. RICE_PS_ROOT overrides sysfs (tests).
+set -euo pipefail
+root=${RICE_PS_ROOT:-/sys/class/power_supply}
+
+action=skip
+for status in "$root"/BAT*/status; do
+  [ -f "$status" ] || continue
+  if [ "$(cat "$status")" = "Discharging" ]; then action=suspend; fi
+done
+
+if [ "${1:-}" = "--dry-run" ]; then echo "$action"; exit 0; fi
+[ "$action" = suspend ] && exec systemctl suspend
+exit 0

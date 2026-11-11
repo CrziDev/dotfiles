@@ -229,6 +229,30 @@ check_files() {
   assert_ok "mpv loads uosc with our config" grep -q '^\[uosc\] Opened config file' "$TMP/mpv.log"
 }
 
+check_idle() {
+  local c p
+  for c in "ps-ac-only:skip" "ps-bat-discharging:suspend" "ps-bat-charging:skip"; do
+    assert_eq "$(RICE_PS_ROOT="$DOT/tests/fixtures/${c%%:*}" "$BIN/rice-idle-suspend" --dry-run 2>&1)" "${c#*:}" "idle-suspend ${c%%:*} -> ${c#*:}"
+  done
+  assert_eq "$("$BIN/rice-idle-suspend" --dry-run 2>&1)" "skip" "idle-suspend on this machine (no battery) -> skip"
+  assert_eq "$(grep -oE '^\s*timeout\s*=\s*[0-9]+' "$HYPR_DIR/hypridle.conf" | grep -oE '[0-9]+' | tr '\n' ' ')" "300 600 660 1800 " "hypridle timeouts"
+  assert_ok "hyprlock.conf sources colors" grep -qE '^source\s*=.*colors\.conf' "$HYPR_DIR/hyprlock.conf"
+  for p in $(grep -oE '^\s*path\s*=\s*\S+' "$HYPR_DIR/hyprlock.conf" | awk -F= '{gsub(/ /,"",$2); print $2}'); do
+    [ "$p" = screenshot ] && continue
+    assert_ok "hyprlock image exists: $p" test -f "${p/#\~/$HOME}"
+  done
+  assert_ok "hypridle running" pgrep -x hypridle
+  assert_ok "swaync running" pgrep -x swaync
+  assert_ok "swaync reloads config + css" bash -c "swaync-client -R && swaync-client -rs"
+  assert_link "$HOME/.config/swaync"
+  # Review focus 2: fullscreen video/game inhibits idle.
+  hyprctl dispatch "hl.dsp.exec_cmd(\"mpv --fs --loop --no-audio $TMP/files/a.mp4\")" >/dev/null
+  for _ in $(seq 1 20); do hyprctl clients -j | jq -e '.[]|select(.class=="mpv")' >/dev/null && break; timeout 0.3 tail -f /dev/null; done
+  timeout 1.5 tail -f /dev/null
+  assert_eq "$(hyprctl clients -j | jq -r '[.[]|select(.class=="mpv")][0] | (.inhibitingIdle // .inhibiting_idle) | tostring')" "true" "fullscreen mpv inhibits idle"
+  pkill -x mpv
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")

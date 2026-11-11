@@ -1,0 +1,25 @@
+/* swaync loads /etc/xdg/swaync/style.css first; this re-points its variables at the palette. */
+@import url("colors.css");
+
+:root {
+  --cc-bg: alpha(@bg, 0.97);
+  --noti-border-color: @muted;
+  --noti-bg: 38, 43, 51; /* = @surface (#262B33) as an R, G, B triplet: swaync uses rgba(var(--noti-bg), alpha) */
+  --noti-bg-alpha: 0.97;
+  --noti-bg-darker: @bg;
+  --noti-bg-hover: @raised;
+  --noti-bg-focus: @raised;
+  --noti-close-bg: @raised;
+  --noti-close-bg-hover: @muted;
+  --text-color: @fg;
+  --text-color-disabled: @subtext;
+  --bg-selected: @accent;
+  --border-radius: 8px;
+  --notification-icon-size: 48px;
+  --font-size-body: 13px;
+  --font-size-summary: 14px;
+}
+
+* { font-family: "JetBrainsMono Nerd Font"; }
+
+.notification.critical { border: 1px solid @red; }
