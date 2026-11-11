@@ -106,6 +106,25 @@ check_hyprlive() {
   assert_eq "$(hyprctl binds -j | jq -r '[.[] | select(.modmask==64) | .key] | group_by(.) | map(select(length>1)[0]) | join(",")')" "" "no live SUPER combo bound twice"
 }
 
+gs() { gsettings get org.gnome.desktop.interface "$1"; }
+check_theme() {
+  assert_eq "$(gs gtk-theme)" "'Arc-Dark'" "gtk-theme Arc-Dark"
+  assert_eq "$(gs icon-theme)" "'Papirus-Dark'" "icon-theme Papirus-Dark"
+  assert_eq "$(gs font-name)" "'Noto Sans 10'" "font Noto Sans 10"
+  assert_eq "$(gs monospace-font-name)" "'JetBrainsMono Nerd Font 10'" "mono font"
+  assert_eq "$(gs color-scheme)" "'prefer-dark'" "color-scheme dark"
+  assert_eq "$(gs cursor-size)" "24" "cursor size 24"
+  assert_link "$HOME/.config/gtk-3.0/settings.ini"
+  assert_link "$HOME/.config/gtk-4.0/settings.ini"
+  assert_fail "gtk-3.0 dir itself not folded into repo" test -L "$HOME/.config/gtk-3.0"
+  assert_ok "gtk3 settings.ini Arc-Dark" grep -qx 'gtk-theme-name=Arc-Dark' "$HOME/.config/gtk-3.0/settings.ini"
+  assert_ok "kvantum theme KvArcDark" grep -qx 'theme=KvArcDark' "$HOME/.config/Kvantum/kvantum.kvconfig"
+  assert_ok "qt6ct style kvantum" grep -qx 'style=kvantum' "$HOME/.config/qt6ct/qt6ct.conf"
+  assert_ok "qt5ct style kvantum" grep -qx 'style=kvantum' "$HOME/.config/qt5ct/qt5ct.conf"
+  assert_ok "papirus folders grey" bash -c "papirus-folders -l --theme Papirus-Dark 2>/dev/null | grep -E '^\\s*>\\s*grey\\b'"
+  assert_ok "rice-apply-theme is executable" test -x "$HOME/.local/bin/rice-apply-theme"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
