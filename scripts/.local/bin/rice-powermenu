@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Power menu (rofi). --print-actions prints the label<TAB>command table and exits.
+set -euo pipefail
+
+ACTIONS=$'Lock\thyprlock\nLogout\thyprctl dispatch \'hl.dsp.exit()\'\nSuspend\tsystemctl suspend\nReboot\tsystemctl reboot\nShutdown\tsystemctl poweroff'
+declare -A ICON=( [Lock]="󰌾" [Logout]="󰍃" [Suspend]="󰒲" [Reboot]="󰜉" [Shutdown]="󰐥" )
+
+if [ "${1:-}" = "--print-actions" ]; then printf '%s\n' "$ACTIONS"; exit 0; fi
+
+# Clicking again while a menu is open closes it.
+if pkill -x rofi; then exit 0; fi
+
+labels=$(cut -f1 <<<"$ACTIONS")
+menu=$(while read -r l; do printf '%s  %s\n' "${ICON[$l]}" "$l"; done <<<"$labels")
+choice=$(rofi -dmenu -i -p "Power" -no-custom <<<"$menu" | awk '{print $NF}') || exit 0
+[ -n "$choice" ] || exit 0
+
+if [ "$choice" = "Reboot" ] || [ "$choice" = "Shutdown" ]; then
+  confirm=$(printf 'Yes\nNo\n' | rofi -dmenu -i -p "$choice?" -no-custom) || exit 0
+  [ "$confirm" = "Yes" ] || exit 0
+fi
+
+cmd=$(awk -F'\t' -v c="$choice" '$1 == c {print $2}' <<<"$ACTIONS")
+exec bash -c "$cmd"

@@ -171,6 +171,39 @@ check_waybar() {
   fi
 }
 
+BIN="$HOME/.local/bin"
+POWER_TABLE=$'Lock\thyprlock\nLogout\thyprctl dispatch \'hl.dsp.exit()\'\nSuspend\tsystemctl suspend\nReboot\tsystemctl reboot\nShutdown\tsystemctl poweroff'
+check_menus() {
+  local f st bt_was
+  assert_link "$HOME/.config/rofi"
+  assert_ok "launcher theme is ours (620px)" bash -c "rofi -theme launcher -dump-theme | grep -q 620px"
+  assert_ok "launcher theme parses" rofi -theme launcher -dump-theme
+  assert_ok "menu theme parses" rofi -theme menu -dump-theme
+  assert_ok "default theme is menu" bash -c "rofi -dump-config | grep -q 'menu'"
+  assert_ok "nm-dmenu uses rofi" grep -qE '^dmenu_command = rofi' "$HOME/.config/networkmanager-dmenu/config.ini"
+  for f in rice-wifi-menu rice-bt-menu rice-powermenu; do
+    assert_ok "$f executable" test -x "$BIN/$f"
+    assert_ok "$f shellcheck clean" shellcheck "$BIN/$f"
+  done
+  assert_eq "$("$BIN/rice-powermenu" --print-actions)" "$POWER_TABLE" "power menu actions"
+  # Review focus 4 (wifi): radio off -> menu turns it on. Uses a fake nmcli so the
+  # real connection (and this session) never drops.
+  st="$TMP/nmcli-state"; rm -f "$st" "$st.log"; echo disabled > "$st"
+  FAKE_NMCLI_STATE="$st" RICE_NMCLI="$DOT/tests/fixtures/fake-nmcli" RICE_NO_UI=1 "$BIN/rice-wifi-menu"
+  assert_eq "$(cat "$st")" "enabled" "wifi off: menu turns radio on"
+  echo enabled > "$st"; rm -f "$st.log"
+  FAKE_NMCLI_STATE="$st" RICE_NMCLI="$DOT/tests/fixtures/fake-nmcli" RICE_NO_UI=1 "$BIN/rice-wifi-menu"
+  assert_fail "wifi on: menu doesn't toggle radio" grep -q 'radio wifi on' "$st.log"
+  # Review focus 4 (bluetooth): rfkill-blocked -> menu unblocks and powers on. Real radio.
+  if [ ! -x "$BIN/rice-bt-menu" ]; then fail "bt test skipped: rice-bt-menu missing"; return; fi
+  bt_was=$(bluetoothctl show | awk '/Powered:/ {print $2}')
+  rfkill block bluetooth; timeout 1 tail -f /dev/null
+  "$BIN/rice-bt-menu" --prepare-only
+  assert_eq "$(rfkill list bluetooth | grep -c 'Soft blocked: yes')" "0" "bt blocked: menu unblocks"
+  assert_eq "$(bluetoothctl show | awk '/Powered:/ {print $2}')" "yes" "bt blocked: menu powers on"
+  [ "$bt_was" = "no" ] && bluetoothctl power off >/dev/null
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")

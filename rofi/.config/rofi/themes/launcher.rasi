@@ -1,0 +1,98 @@
+/* App launcher, modeled on docs/reference.png: search field + mode buttons, list below. */
+@import "../colors.rasi"
+
+* {
+    background-color: transparent;
+    text-color:       @fg;
+}
+
+window {
+    width:            620px;
+    location:         center;
+    anchor:           center;
+    border:           1px;
+    border-color:     @muted;
+    border-radius:    10px;
+    background-color: @bg;
+}
+
+mainbox {
+    padding:  28px;
+    spacing:  18px;
+    children: [ "topbar", "listview" ];
+}
+
+topbar {
+    expand:      false;
+    orientation: horizontal;
+    spacing:     10px;
+    children:    [ "inputbar", "mode-switcher" ];
+}
+
+inputbar {
+    expand:           true;
+    padding:          10px 12px;
+    spacing:          10px;
+    border-radius:    8px;
+    background-color: @raised;
+    children:         [ "textbox-search", "entry" ];
+}
+textbox-search {
+    expand:     false;
+    str:        " ";
+    text-color: @fg;
+}
+entry {
+    placeholder:       "Search...";
+    placeholder-color: @subtext;
+    cursor:            text;
+}
+
+mode-switcher { spacing: 8px; }
+button {
+    padding:          10px 14px;
+    border-radius:    8px;
+    background-color: @raised;
+    text-color:       @fg;
+    cursor:           pointer;
+}
+button selected {
+    background-color: @accent;
+    text-color:       @bg;
+}
+
+listview {
+    lines:        8;
+    columns:      1;
+    spacing:      4px;
+    fixed-height: true;
+    scrollbar:    true;
+    cursor:       default;
+}
+scrollbar {
+    handle-width:     4px;
+    handle-color:     @accent;
+    background-color: @raised;
+    border-radius:    4px;
+}
+
+element {
+    padding:       8px 10px;
+    spacing:       12px;
+    border-radius: 6px;
+    cursor:        pointer;
+}
+element normal.normal, element alternate.normal { background-color: transparent; }
+element selected.normal {
+    background-color: @accent;
+    text-color:       @bg;
+}
+element-icon {
+    size:   22px;
+    cursor: inherit;
+}
+element-text {
+    vertical-align: 0.5;
+    text-color:     inherit;
+    cursor:         inherit;
+}

@@ -1,0 +1,16 @@
+configuration {
+    modi:                "drun,run,filebrowser,window";
+    show-icons:          true;
+    icon-theme:          "Papirus-Dark";
+    font:                "JetBrainsMono Nerd Font 11";
+    drun-display-format: "{name}";
+    display-drun:        "";
+    display-run:         "";
+    display-filebrowser: "";
+    display-window:      "";
+    window-format:       "{w}  {c}  {t}";
+    hover-select:        true;
+    me-select-entry:     "";
+    me-accept-entry:     "MousePrimary";
+}
+@theme "menu"

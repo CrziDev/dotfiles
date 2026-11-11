@@ -1,0 +1,68 @@
+/* Plain list menu: wifi, bluetooth, power, and any `rofi -dmenu` caller. */
+@import "../colors.rasi"
+
+* {
+    background-color: transparent;
+    text-color:       @fg;
+}
+
+window {
+    width:            420px;
+    location:         center;
+    anchor:           center;
+    border:           1px;
+    border-color:     @muted;
+    border-radius:    10px;
+    background-color: @bg;
+}
+
+mainbox {
+    padding:  20px;
+    spacing:  14px;
+    children: [ "inputbar", "message", "listview" ];
+}
+
+inputbar {
+    padding:          10px 12px;
+    spacing:          10px;
+    border-radius:    8px;
+    background-color: @raised;
+    children:         [ "prompt", "entry" ];
+}
+prompt { text-color: @accent; }
+entry {
+    placeholder:       "Filter...";
+    placeholder-color: @subtext;
+}
+
+message {
+    padding:          8px 12px;
+    border-radius:    8px;
+    background-color: @surface;
+}
+textbox { text-color: @subtext; }
+
+listview {
+    lines:        8;
+    spacing:      4px;
+    fixed-height: false;
+    scrollbar:    false;
+}
+
+element {
+    padding:       8px 10px;
+    border-radius: 6px;
+    cursor:        pointer;
+}
+element normal.normal, element alternate.normal { background-color: transparent; }
+element selected.normal {
+    background-color: @accent;
+    text-color:       @bg;
+}
+element normal.active, element alternate.active { text-color: @green; }
+element selected.active { background-color: @green; text-color: @bg; }
+element normal.urgent, element alternate.urgent { text-color: @red; }
+element-text {
+    text-color: inherit;
+    cursor:     inherit;
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Stand-in for nmcli: state lives in $FAKE_NMCLI_STATE; every call is logged.
+echo "$*" >> "$FAKE_NMCLI_STATE.log"
+case "$*" in
+  "radio wifi")    cat "$FAKE_NMCLI_STATE" ;;
+  "radio wifi on") echo enabled > "$FAKE_NMCLI_STATE" ;;
+  *) exit 0 ;;
+esac
