@@ -153,6 +153,9 @@ check_waybar() {
   assert_ok "waybar layer on eDP-1" wb_layer_on eDP-1
   if hyprctl monitors -j | jq -e '.[]|select(.name=="HDMI-A-1")' >/dev/null; then
     assert_ok "waybar layer on HDMI-A-1" wb_layer_on HDMI-A-1
+  fi
+  # Unplug simulation blinks the external monitor; opt-in with RICE_UNPLUG_TEST=1.
+  if [ "${RICE_UNPLUG_TEST:-0}" = 1 ] && hyprctl monitors -j | jq -e '.[]|select(.name=="HDMI-A-1")' >/dev/null; then
     # Review focus 3: external monitor unplugged.
     hyprctl eval 'hl.monitor({ output = "HDMI-A-1", disabled = true })' >/dev/null
     timeout 3 tail -f /dev/null
