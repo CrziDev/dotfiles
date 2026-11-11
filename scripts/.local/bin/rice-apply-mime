@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Set default apps from ~/dotfiles/mime/defaults.tsv and Thunar preferences. Idempotent.
+# mimeapps.list is written by xdg-mime (not stowed): apps rewrite it and would break a symlink.
+set -euo pipefail
+table="$HOME/dotfiles/mime/defaults.tsv"
+
+while IFS=$'\t' read -r mimetype desktop_id; do
+  [ -n "$mimetype" ] && xdg-mime default "$desktop_id" "$mimetype"
+done < "$table"
+
+tq() { xfconf-query -c thunar -p "$1" -n -t "$2" -s "$3"; }
+tq /misc-thumbnail-mode string THUNAR_THUMBNAIL_MODE_ALWAYS
+tq /misc-single-click   bool   false
+tq /last-view           string ThunarIconView

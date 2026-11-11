@@ -204,6 +204,31 @@ check_menus() {
   [ "$bt_was" = "no" ] && bluetoothctl power off >/dev/null
 }
 
+check_files() {
+  local mt id d fx
+  while IFS=$'\t' read -r mt id; do
+    assert_eq "$(xdg-mime query default "$mt")" "$id" "default for $mt"
+  done < "$DOT/mime/defaults.tsv"
+  fx="$TMP/files"; rm -rf "$fx"; mkdir -p "$fx"
+  ffmpeg -loglevel error -f lavfi -i testsrc=d=2:s=320x240 -pix_fmt yuv420p -y "$fx/a.mp4"
+  ffmpeg -loglevel error -f lavfi -i testsrc=s=320x240 -frames:v 1 -y "$fx/a b.png"
+  (cd "$fx" && 7z a -bso0 -bsp0 a.zip "a b.png" && tar czf a.tar.gz "a b.png")
+  assert_ok "video thumbnail generates" ffmpegthumbnailer -i "$fx/a.mp4" -o "$fx/t.png"
+  assert_ok "ffmpegthumbnailer registered" test -f /usr/share/thumbnailers/ffmpegthumbnailer.thumbnailer
+  for f in "a b.png:org.xfce.ristretto.desktop" "a.zip:org.gnome.FileRoller.desktop" \
+           "a.tar.gz:org.gnome.FileRoller.desktop" "a.mp4:mpv.desktop"; do
+    mt=$(xdg-mime query filetype "$fx/${f%%:*}")
+    assert_eq "$(xdg-mime query default "$mt")" "${f#*:}" "opens ${f%%:*} ($mt)"
+  done
+  assert_ok "gvfs running (gio mount -l)" gio mount -l
+  assert_eq "$(xfconf-query -c thunar -p /misc-thumbnail-mode 2>/dev/null)" "THUNAR_THUMBNAIL_MODE_ALWAYS" "thunar thumbnails always"
+  assert_eq "$(xfconf-query -c thunar -p /misc-single-click 2>/dev/null)" "false" "thunar double-click"
+  assert_link "$HOME/.config/mpv"
+  assert_ok "mpv osc off" grep -qx 'osc=no' "$HOME/.config/mpv/mpv.conf"
+  timeout 8 mpv --keep-open=no --idle=no --vo=null --ao=null --msg-level=all=v --frames=1 "$fx/a.mp4" > "$TMP/mpv.log" 2>&1
+  assert_ok "mpv loads uosc with our config" grep -q '^\[uosc\] Opened config file' "$TMP/mpv.log"
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
