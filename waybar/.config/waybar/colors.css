@@ -1,0 +1,14 @@
+/* Slate palette. Source of truth: palette/README.md */
+@define-color bg #1F232A;
+@define-color surface #262B33;
+@define-color raised #2E343E;
+@define-color muted #4B5263;
+@define-color subtext #8B92A0;
+@define-color fg #C8CCD4;
+@define-color accent #61AFEF;
+@define-color red #E06C75;
+@define-color green #98C379;
+@define-color yellow #E5C07B;
+@define-color orange #D19A66;
+@define-color teal #56B6C2;
+@define-color magenta #C678DD;

@@ -58,6 +58,22 @@ check_packages() {
   for p in "${REPO_PKGS[@]}" "${AUR_PKGS[@]}"; do assert_ok "installed: $p" pacman -Q "$p"; done
 }
 
+PALETTE=(1F232A 262B33 2E343E 4B5263 8B92A0 C8CCD4 61AFEF E06C75 98C379 E5C07B D19A66 56B6C2 C678DD)
+PALETTE_FILES=(hypr/.config/hypr/colors.lua hypr/.config/hypr/colors.conf waybar/.config/waybar/colors.css
+  swaync/.config/swaync/colors.css rofi/.config/rofi/colors.rasi kitty/.config/kitty/colors.conf)
+check_palette() {
+  local f h extra
+  for f in "${PALETTE_FILES[@]}"; do
+    if [ ! -f "$DOT/$f" ]; then fail "palette file exists: $f"; continue; fi
+    for h in "${PALETTE[@]}"; do
+      [ "$f" == "${PALETTE_FILES[5]}" ] && continue  # kitty maps a subset; checked below
+      assert_ok "$f has $h" grep -qi "$h" "$DOT/$f"
+    done
+    extra=$(grep -oiE '[0-9a-f]{6}' "$DOT/$f" | tr a-f A-F | sort -u | grep -vxF -f <(printf '%s\n' "${PALETTE[@]}"))
+    assert_eq "$extra" "" "$f uses only palette colors"
+  done
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
