@@ -48,6 +48,16 @@ check_backup() {
   assert_ok "RESTORE.md exists" test -s "$DOT/RESTORE.md"
 }
 
+REPO_PKGS=(stow hyprpaper hypridle hyprlock hyprpolkitagent kvantum qt5ct qt6ct papirus-icon-theme
+  nwg-look noto-fonts thunar thunar-archive-plugin thunar-volman thunar-media-tags-plugin gvfs gvfs-mtp
+  gvfs-gphoto2 tumbler ffmpegthumbnailer file-roller ristretto unrar nm-connection-editor
+  nwg-dock-hyprland starship fastfetch jq pavucontrol shellcheck)
+AUR_PKGS=(arc-gtk-theme papirus-folders mpv-uosc rofi-bluetooth-git networkmanager-dmenu)
+check_packages() {
+  local p
+  for p in "${REPO_PKGS[@]}" "${AUR_PKGS[@]}"; do assert_ok "installed: $p" pacman -Q "$p"; done
+}
+
 # --- runner ---
 if [ $# -eq 0 ]; then echo "usage: $0 <area>... | all" >&2; exit 2; fi
 areas=("$@")
