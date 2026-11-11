@@ -10,7 +10,7 @@ If something looks broken:
 
    ```bash
    cd ~/dotfiles
-   stow -D -t ~ waybar swaync rofi kitty mpv networkmanager-dmenu nwg-dock starship fastfetch gtk qt scripts
+   stow -D -t ~ waybar swaync rofi kitty mpv networkmanager-dmenu nwg-dock starship fastfetch gtk qt scripts nvim
    ```
 
 3. Put the old configs back (skipping `hypr`):
@@ -21,7 +21,13 @@ If something looks broken:
    for d in .config/*; do [ "$d" = .config/hypr ] || cp -a "$d" ~/.config/; done
    ```
 
-4. Start Hyprland the way you usually do.
+4. Neovim's old single-file config (with its git history) is in `~/Documents/Backups/nvim-config-2026-11-12/`:
+
+   ```bash
+   cp -a ~/Documents/Backups/nvim-config-2026-11-12 ~/.config/nvim
+   ```
+
+5. Start Hyprland the way you usually do.
 
 Keep `hypr` stowed. Hyprland 0.57 only reads `hyprland.lua`, so the backed-up
 `hyprland.conf` no longer works; without the Lua config you get stock Hyprland.

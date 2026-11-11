@@ -82,7 +82,8 @@ check_backup() {
 REPO_PKGS=(stow hyprpaper hypridle hyprlock hyprpolkitagent kvantum qt5ct qt6ct papirus-icon-theme
   nwg-look noto-fonts thunar thunar-archive-plugin thunar-volman thunar-media-tags-plugin gvfs gvfs-mtp
   gvfs-gphoto2 tumbler ffmpegthumbnailer file-roller ristretto unrar nm-connection-editor
-  nwg-dock-hyprland starship fastfetch jq pavucontrol shellcheck ttf-montserrat ttf-nerd-fonts-symbols-mono)
+  nwg-dock-hyprland starship fastfetch jq pavucontrol shellcheck ttf-montserrat ttf-nerd-fonts-symbols-mono
+  tree-sitter-cli)
 AUR_PKGS=(arc-gtk-theme papirus-folders mpv-uosc rofi-bluetooth-git networkmanager-dmenu)
 check_packages() {
   local p
@@ -91,7 +92,8 @@ check_packages() {
 
 PALETTE=(1F232A 262B33 2E343E 4B5263 8B92A0 C8CCD4 E6E9EF 61AFEF E06C75 98C379 E5C07B D19A66 56B6C2 C678DD)
 PALETTE_FILES=(hypr/.config/hypr/colors.lua hypr/.config/hypr/colors.conf waybar/.config/waybar/colors.css
-  swaync/.config/swaync/colors.css rofi/.config/rofi/colors.rasi kitty/.config/kitty/colors.conf)
+  swaync/.config/swaync/colors.css rofi/.config/rofi/colors.rasi kitty/.config/kitty/colors.conf
+  nvim/.config/nvim/lua/config/colors.lua)
 check_palette() {
   local f h extra
   for f in "${PALETTE_FILES[@]}"; do
@@ -375,6 +377,20 @@ check_terminal() {
   assert_fail "bashrc has no inline secrets" grep -qE '^export [A-Z_]*(KEY|PASSWORD|_URL)=' "$HOME/.bashrc"
   assert_ok "bashrc sources secrets.env" grep -qF '.config/secrets.env' "$HOME/.bashrc"
   assert_eq "$(bash -ic 'type -t starship_precmd' 2>/dev/null)" "function" "interactive bash loads starship"
+}
+
+check_nvim() {
+  local out
+  assert_link "$HOME/.config/nvim"
+  out=$(cd "$TMP" && timeout 60 nvim --headless -n -c "luafile $DOT/tests/nvim_probe.lua" 2>&1)
+  assert_ok "nvim colorscheme is catppuccin" grep -qx 'colors=catppuccin-mocha' <<<"$out"
+  assert_ok "nvim background is transparent" grep -qx 'normal_bg=nil' <<<"$out"
+  assert_ok "nvim starts without errors" grep -qx 'errors=false' <<<"$out"
+  for l in lua go php; do assert_ok "treesitter parser loads: $l" grep -qx "parser_$l=true" <<<"$out"; done
+  assert_ok "space-t is not mapped in insert mode" grep -qx 'insert_leader_t=unmapped' <<<"$out"
+  assert_ok "telescope loads fzf-native" grep -qx 'fzf=true' <<<"$out"
+  assert_fail "no gofmt buffer filter" grep -rqF '%!gofmt' "$HOME/.config/nvim/"
+  assert_fail "lazy update popup is off" grep -rqE 'checker = \{ enabled = true \}' "$HOME/.config/nvim/"
 }
 
 check_cleanup() {

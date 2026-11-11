@@ -8,6 +8,7 @@ hex values live in one file per format:
 - `waybar/.config/waybar/colors.css` and `swaync/.config/swaync/colors.css`
 - `rofi/.config/rofi/colors.rasi`
 - `kitty/.config/kitty/colors.conf`
+- `nvim/.config/nvim/lua/config/colors.lua` (Neovim, via catppuccin overrides)
 
 `tests/check.sh palette` checks that every file uses all of these and no other colors.
 

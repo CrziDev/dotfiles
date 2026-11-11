@@ -8,7 +8,7 @@ Each top-level folder with a `.config/` (or `.local/`) inside is a stow package.
 
 ```sh
 cd ~/dotfiles
-stow -t ~ hypr waybar swaync rofi kitty mpv networkmanager-dmenu nwg-dock starship fastfetch
+stow -t ~ hypr waybar swaync rofi kitty mpv networkmanager-dmenu nwg-dock starship fastfetch nvim
 stow --no-folding -t ~ gtk qt scripts   # keeps ~/.config/gtk-3.0 etc. as real dirs
 
 ~/.local/bin/rice-apply-theme   # GTK theme, icons, fonts, grey Papirus folders (asks for sudo once)
@@ -43,6 +43,8 @@ Not stowed: `wallpapers/`, `mime/`, `palette/` (color table; hex values live in 
 Bar: mono and transparent over the dusk wallpaper. Click wifi or bluetooth for a menu, right-click for the full settings app. Click the bell or the volume icon for the quick panel (volume, per-app volume, brightness, notifications); click outside to close it. Right-click the bell for do-not-disturb, right-click volume to mute, middle-click volume for the full mixer. Scroll on volume or brightness to change it.
 
 Idle: dim 5 min, lock 10, screens off 11, suspend at 30 only on battery. Fullscreen windows and games block all of it.
+
+Neovim: catppuccin recolored with the palette (`nvim/.config/nvim/lua/config/colors.lua`) and a transparent background, so it shows kitty's own background like the shell does. Plugins are one file per area under `lua/plugins/`. Syntax highlighting needs `tree-sitter-cli`; the parsers install on first start (or `:TSUpdate`).
 
 ## Checks
 
