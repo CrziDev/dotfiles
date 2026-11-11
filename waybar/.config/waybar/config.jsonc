@@ -1,36 +1,31 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 34,
+  "height": 30,
   "spacing": 0,
   "modules-left": [
-    "custom/launcher",
     "hyprland/workspaces",
     "group/stats"
   ],
   "modules-center": [
-    "clock",
-    "group/media"
+    "clock"
   ],
   "modules-right": [
-    "group/audio",
+    "custom/notification",
+    "pulseaudio",
     "backlight",
-    "network",
     "bluetooth",
+    "network",
     "battery",
     "custom/power"
   ],
-  "custom/launcher": {
-    "format": "",
-    "tooltip": false,
-    "on-click": "rofi -show drun -theme launcher"
-  },
   "hyprland/workspaces": {
     "format": "{icon}",
     "format-icons": {
-      "active": "",
-      "urgent": "",
-      "default": ""
+      "active": "󰝥",
+      "urgent": "󰝥",
+      "default": "󰝦",
+      "visible": "󰝥"
     }
   },
   "group/stats": {
@@ -38,83 +33,52 @@
     "modules": [
       "cpu",
       "memory",
-      "disk",
       "temperature"
     ]
   },
   "cpu": {
-    "format": "󰻠  {usage}%",
+    "format": "󰻠 {usage}%",
     "interval": 3
   },
   "memory": {
-    "format": "󰍛  {used:0.1f}G",
+    "format": "󰍛 {percentage}%",
     "interval": 5,
     "tooltip-format": "{used:0.1f} / {total:0.1f} GiB"
-  },
-  "disk": {
-    "format": "󰋊  {free}",
-    "interval": 60,
-    "paths": [
-      "/"
-    ]
   },
   "temperature": {
     "hwmon-path-abs": "/sys/devices/pci0000:00/0000:00:18.3/hwmon",
     "input-filename": "temp1_input",
     "critical-threshold": 85,
-    "format": " {temperatureC}°C",
+    "format": "󰔏{temperatureC}°",
     "interval": 3,
     "tooltip-format": "CPU (Tctl) {temperatureC}°C"
   },
   "clock": {
-    "format": "󰥔  {:%I:%M %p}",
-    "tooltip-format": "<tt>{calendar}</tt>",
-    "on-click-right": "swaync-client -t -sw"
+    "format": "{0:%I:%M %p}  <span weight='500' alpha='55%'>{0:%a, %b %d}</span>",
+    "tooltip-format": "<tt>{calendar}</tt>"
   },
-  "group/media": {
-    "orientation": "horizontal",
-    "modules": [
-      "custom/media-prev",
-      "mpris",
-      "custom/media-next"
-    ]
-  },
-  "custom/media-prev": {
-    "format": "󰒮",
-    "exec": "echo prev",
-    "exec-if": "playerctl status",
-    "interval": 2,
-    "tooltip": false,
-    "on-click": "playerctl previous"
-  },
-  "mpris": {
-    "format": "{status_icon}  {title}",
-    "title-len": 28,
-    "status-icons": {
-      "playing": "󰏤",
-      "paused": "󰐊",
-      "stopped": "󰐊"
+  "custom/notification": {
+    "format": "{icon}{text}",
+    "format-icons": {
+      "none": "󰂜",
+      "notification": "󰅸",
+      "dnd-none": "󰂛",
+      "dnd-notification": "󰂛",
+      "inhibited-none": "󰂜",
+      "inhibited-notification": "󰅸",
+      "dnd-inhibited-none": "󰂛",
+      "dnd-inhibited-notification": "󰂛"
     },
-    "on-click": "playerctl play-pause"
-  },
-  "custom/media-next": {
-    "format": "󰒭",
-    "exec": "echo next",
-    "exec-if": "playerctl status",
-    "interval": 2,
-    "tooltip": false,
-    "on-click": "playerctl next"
-  },
-  "group/audio": {
-    "orientation": "horizontal",
-    "modules": [
-      "pulseaudio",
-      "pulseaudio/slider"
-    ]
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb | jq --unbuffered -c '.text = (if .text == \"0\" then \"\" else \" \" + .text end)'",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
   },
   "pulseaudio": {
-    "format": "{icon}",
-    "format-muted": "󰖁",
+    "format": "{icon} {volume}%",
+    "format-muted": "󰝟",
     "format-icons": {
       "default": [
         "󰕿",
@@ -123,13 +87,9 @@
       ]
     },
     "tooltip-format": "{desc} · {volume}%",
-    "on-click": "pavucontrol",
-    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-  },
-  "pulseaudio/slider": {
-    "min": 0,
-    "max": 100,
-    "orientation": "horizontal"
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-click-middle": "pavucontrol"
   },
   "backlight": {
     "device": "amdgpu_bl1",
@@ -142,25 +102,34 @@
     "on-scroll-up": "brightnessctl -e4 -n2 set 5%+",
     "on-scroll-down": "brightnessctl -e4 -n2 set 5%-"
   },
-  "network": {
-    "format-wifi": "󰤨  {essid}",
-    "format-ethernet": "󰈀  wired",
-    "format-disconnected": "󰤭  offline",
-    "format-disabled": "󰤭  off",
-    "tooltip-format-wifi": "{essid} · {signalStrength}% · {ipaddr}",
-    "tooltip-format-ethernet": "{ifname} · {ipaddr}",
-    "on-click": "$HOME/.local/bin/rice-wifi-menu",
-    "on-click-right": "nm-connection-editor"
-  },
   "bluetooth": {
     "format": "󰂯",
     "format-disabled": "󰂲",
     "format-off": "󰂲",
-    "format-connected": "󰂱 {device_alias}",
+    "format-connected": "󰂱",
+    "tooltip-format": "{controller_alias} · {status}",
     "tooltip-format-connected": "{device_enumerate}",
     "tooltip-format-enumerate-connected": "{device_alias}",
     "on-click": "$HOME/.local/bin/rice-bt-menu",
     "on-click-right": "blueman-manager"
+  },
+  "network": {
+    "format-wifi": "{icon}",
+    "format-icons": [
+      "󰤯",
+      "󰤟",
+      "󰤢",
+      "󰤥",
+      "󰤨"
+    ],
+    "format-ethernet": "󰈀",
+    "format-disconnected": "󰤮",
+    "format-disabled": "󰤮",
+    "tooltip-format-wifi": "{essid} · {signalStrength}% · {ipaddr}",
+    "tooltip-format-ethernet": "{ifname} · {ipaddr}",
+    "tooltip-format-disconnected": "Offline",
+    "on-click": "$HOME/.local/bin/rice-wifi-menu",
+    "on-click-right": "nm-connection-editor"
   },
   "battery": {
     "states": {
@@ -178,7 +147,7 @@
     ]
   },
   "custom/power": {
-    "format": "⏻",
+    "format": "󰐥",
     "tooltip": false,
     "on-click": "$HOME/.local/bin/rice-powermenu"
   }

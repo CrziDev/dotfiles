@@ -5,7 +5,7 @@ hl.config({
     general = {
         gaps_in     = 5,
         gaps_out    = 10,
-        border_size = 2,
+        border_size = 0,  -- no window borders (mono look); set 2 to bring the accent border back
         col = {
             active_border   = rgb(c.accent),
             inactive_border = rgb(c.muted),

@@ -40,7 +40,7 @@ Not stowed: `wallpapers/`, `mime/`, `palette/` (color table; hex values live in 
 | `SUPER+1..0` / `SUPER+SHIFT+1..0` | workspace / move to workspace |
 | `Print` or `SUPER+P` / `SHIFT+Print` | screenshot / region |
 
-Bar: click wifi or bluetooth for a menu, right-click for the full settings app. Right-click the clock for notifications.
+Bar: mono and transparent over the dusk wallpaper. Click wifi or bluetooth for a menu, right-click for the full settings app. Click the bell or the volume icon for the quick panel (volume, per-app volume, brightness, notifications); click outside to close it. Right-click the bell for do-not-disturb, right-click volume to mute, middle-click volume for the full mixer. Scroll on volume or brightness to change it.
 
 Idle: dim 5 min, lock 10, screens off 11, suspend at 30 only on battery. Fullscreen windows and games block all of it.
 

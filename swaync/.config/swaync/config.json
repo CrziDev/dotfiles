@@ -53,9 +53,11 @@
     }
   },
   "widgets": [
+    "volume",
+    "backlight",
     "inhibitors",
-    "title",
     "dnd",
+    "title",
     "notifications"
   ],
   "widget-config": {
@@ -96,6 +98,21 @@
           "update-command": "sh -c '[[ $(nmcli radio wifi) == \"enabled\" ]] && echo true || echo false'"
         }
       ]
+    },
+    "volume": {
+      "label": "󰕾",
+      "show-per-app": true,
+      "show-per-app-icon": true,
+      "show-per-app-label": true,
+      "expand-button-label": "󰅀",
+      "collapse-button-label": "󰅃",
+      "empty-list-label": "Nothing playing"
+    },
+    "backlight": {
+      "label": "󰃠",
+      "device": "amdgpu_bl1",
+      "subsystem": "backlight",
+      "min": 5
     }
   }
 }

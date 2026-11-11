@@ -1,6 +1,6 @@
 # Palette
 
-The slate palette, taken from `docs/reference.png`. Every config uses these names; the
+The slate palette (mono: the accent is a soft white, so the rice reads black-and-white), taken from `docs/reference.png`. Every config uses these names; the
 hex values live in one file per format:
 
 - `hypr/.config/hypr/colors.lua` (Hyprland)
@@ -13,16 +13,17 @@ hex values live in one file per format:
 
 | Token     | Hex       | Used for                          |
 |-----------|-----------|-----------------------------------|
-| `bg`      | `#1F232A` | bar, launcher, desktop background |
+| `bg`      | `#1F232A` | launcher, desktop background      |
 | `surface` | `#262B33` | window surfaces                   |
-| `raised`  | `#2E343E` | pills, inputs, hovered rows       |
+| `raised`  | `#2E343E` | inputs, hovered rows              |
 | `muted`   | `#4B5263` | borders, inactive things          |
 | `subtext` | `#8B92A0` | secondary text                    |
 | `fg`      | `#C8CCD4` | main text                         |
-| `accent`  | `#61AFEF` | selection, active border, focus   |
-| `red`     | `#E06C75` | power, errors, critical           |
-| `green`   | `#98C379` | CPU icon                          |
+| `accent`  | `#E6E9EF` | selection, borders, bar text     |
+| `blue`    | `#61AFEF` | kitty ANSI blue only              |
+| `red`     | `#E06C75` | errors, critical states          |
+| `green`   | `#98C379` | connected rows, lock check        |
 | `yellow`  | `#E5C07B` | warnings                          |
-| `orange`  | `#D19A66` | temperature                       |
-| `teal`    | `#56B6C2` | memory, folders                   |
-| `magenta` | `#C678DD` | disk                              |
+| `orange`  | `#D19A66` | kitty, spare                      |
+| `teal`    | `#56B6C2` | kitty, spare                      |
+| `magenta` | `#C678DD` | kitty, spare                      |

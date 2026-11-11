@@ -82,14 +82,14 @@ check_backup() {
 REPO_PKGS=(stow hyprpaper hypridle hyprlock hyprpolkitagent kvantum qt5ct qt6ct papirus-icon-theme
   nwg-look noto-fonts thunar thunar-archive-plugin thunar-volman thunar-media-tags-plugin gvfs gvfs-mtp
   gvfs-gphoto2 tumbler ffmpegthumbnailer file-roller ristretto unrar nm-connection-editor
-  nwg-dock-hyprland starship fastfetch jq pavucontrol shellcheck)
+  nwg-dock-hyprland starship fastfetch jq pavucontrol shellcheck ttf-montserrat ttf-nerd-fonts-symbols-mono)
 AUR_PKGS=(arc-gtk-theme papirus-folders mpv-uosc rofi-bluetooth-git networkmanager-dmenu)
 check_packages() {
   local p
   for p in "${REPO_PKGS[@]}" "${AUR_PKGS[@]}"; do assert_ok "installed: $p" pacman -Q "$p"; done
 }
 
-PALETTE=(1F232A 262B33 2E343E 4B5263 8B92A0 C8CCD4 61AFEF E06C75 98C379 E5C07B D19A66 56B6C2 C678DD)
+PALETTE=(1F232A 262B33 2E343E 4B5263 8B92A0 C8CCD4 E6E9EF 61AFEF E06C75 98C379 E5C07B D19A66 56B6C2 C678DD)
 PALETTE_FILES=(hypr/.config/hypr/colors.lua hypr/.config/hypr/colors.conf waybar/.config/waybar/colors.css
   swaync/.config/swaync/colors.css rofi/.config/rofi/colors.rasi kitty/.config/kitty/colors.conf)
 check_palette() {
@@ -171,9 +171,13 @@ check_waybar() {
   assert_link "$HOME/.config/waybar"
   if ! jq -e . "$WB_CFG" >/dev/null 2>&1; then fail "config parses as JSON (skipping live checks)"; return; fi
   pass "config parses as JSON"
-  assert_eq "$(wb_modules left)" "custom/launcher,hyprland/workspaces,cpu,memory,disk,temperature" "left modules"
-  assert_eq "$(wb_modules center)" "clock,custom/media-prev,mpris,custom/media-next" "center modules"
-  assert_eq "$(wb_modules right)" "pulseaudio,pulseaudio/slider,backlight,network,bluetooth,battery,custom/power" "right modules"
+  assert_eq "$(wb_modules left)" "hyprland/workspaces,cpu,memory,temperature" "left modules"
+  assert_eq "$(wb_modules center)" "clock" "center modules"
+  assert_eq "$(wb_modules right)" "custom/notification,pulseaudio,backlight,bluetooth,network,battery,custom/power" "right modules"
+  assert_eq "$(jq -r '[keys[] | select(test("launcher|mpris|media"))] | join(",")' "$WB_CFG")" "" "no launcher or media modules"
+  assert_ok "bar background is transparent" grep -qzP 'window#waybar \{[^}]*background: transparent;' "$HOME/.config/waybar/style.css"
+  assert_eq "$(jq -r '.pulseaudio."on-click"' "$WB_CFG")" "swaync-client -t -sw" "volume click opens the quick panel"
+  assert_ok "notification module follows swaync" bash -c "jq -r '.\"custom/notification\".exec' '$WB_CFG' | grep -q 'swaync-client -swb'"
   assert_eq "$(jq -r 'has("output")' "$WB_CFG")" "false" "bar on every monitor (no output key)"
   assert_eq "$(jq -r '.temperature["hwmon-path-abs"]' "$WB_CFG")" "/sys/devices/pci0000:00/0000:00:18.3/hwmon" "temp uses k10temp path"
   assert_eq "$(jq -r '.temperature["critical-threshold"]' "$WB_CFG")" "85" "temp critical at 85"
@@ -301,6 +305,8 @@ check_idle() {
   assert_ok "swaync running" pgrep -x swaync
   assert_ok "swaync reloads config + css" bash -c "swaync-client -R && swaync-client -rs"
   assert_link "$HOME/.config/swaync"
+  assert_eq "$(jq -r '.widgets[:2] | join(",")' "$HOME/.config/swaync/config.json")" "volume,backlight" "panel starts with volume + brightness sliders"
+  assert_eq "$(jq -r '."layer-shell-cover-screen"' "$HOME/.config/swaync/config.json")" "true" "panel closes on click outside"
   # Review focus 2: our window rules (not the app) keep a fullscreen window or a focused
   # game from dimming/locking. kitty never inhibits idle by itself, which the first check proves.
   a=$(test_window rice-test-plain)
@@ -311,16 +317,19 @@ check_idle() {
   assert_eq "$(client_get "$a" .inhibitingIdle)" "true" "focused game window (.exe) inhibits idle"; close_window "$a"
 }
 
-WALL="$DOT/wallpapers/mountains-gray.jpg"
+WALL="$DOT/wallpapers/mountains-dusk.jpg"
 check_desktop() {
-  local m sat a top bot
+  local m sat sky a top bot
   for m in $(hyprctl monitors -j | jq -r '.[].name'); do
     assert_ok "wallpaper on $m" bash -c "hyprctl hyprpaper listactive | grep -qx '$m: $WALL'"
   done
   sat=$(ffprobe -v error -f lavfi "movie=$WALL,signalstats" -show_entries frame_tags=lavfi.signalstats.SATAVG -of csv=p=0 | head -1)
   assert_ok "wallpaper is grayscale (SATAVG=$sat)" awk -v s="$sat" 'BEGIN { exit !(s < 1) }'
+  # The bar is transparent, so the sky behind it must stay dark enough for its white text.
+  sky=$(ffprobe -v error -f lavfi "movie=$WALL,crop=iw:ih*0.04:0:0,signalstats" -show_entries frame_tags=lavfi.signalstats.YAVG -of csv=p=0 | head -1 | tr -d ,)
+  assert_ok "sky behind the bar is dark (YAVG=$sky)" awk -v t="$sky" 'BEGIN { exit !(t <= 85) }'
   assert_ok "wallpaper source recorded" grep -q 'unsplash' "$DOT/wallpapers/SOURCE.md"
-  assert_ok "hyprlock uses the wallpaper" grep -qE "^\s*path\s*=\s*~/dotfiles/wallpapers/mountains-gray.jpg" "$HYPR_DIR/hyprlock.conf"
+  assert_ok "hyprlock uses the wallpaper" grep -qE "^\s*path\s*=\s*~/dotfiles/wallpapers/mountains-dusk.jpg" "$HYPR_DIR/hyprlock.conf"
   assert_eq "$(pgrep -cx nwg-dock-hyprla)" "1" "exactly one dock running"
   assert_ok "rice-dock shellcheck clean" shellcheck "$BIN/rice-dock"
   assert_ok "autostart starts the dock via rice-dock" \
