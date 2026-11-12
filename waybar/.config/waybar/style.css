@@ -32,7 +32,7 @@ tooltip label { color: @fg; text-shadow: none; }
 .modules-left  { padding-left: 12px; }
 .modules-right { padding-right: 10px; }
 
-/* Workspaces: filled dot = shown on a monitor, hollow = the rest. */
+/* Workspaces: fixed dots per monitor. Bright = on screen, filled = has windows, hollow = empty. */
 #workspaces { margin-right: 14px; }
 #workspaces button {
     color: @dim;
@@ -41,6 +41,7 @@ tooltip label { color: @fg; text-shadow: none; }
     text-shadow: inherit;
 }
 #workspaces button label { font-size: 11px; }
+#workspaces button.empty { color: alpha(@accent, 0.35); }
 #workspaces button.active,
 #workspaces button.visible { color: @text; }
 #workspaces button.urgent { color: @red; }
