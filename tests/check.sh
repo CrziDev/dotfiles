@@ -127,6 +127,10 @@ check_hypr() {
   assert_ok "SUPER+S is special workspace" grep -qE '" \+ S",.*toggle_special' "$HYPR_DIR/keybinds.lua"
   assert_ok "SUPER+P is screenshot" grep -qE '" \+ P",.*hyprshot -m output' "$HYPR_DIR/keybinds.lua"
   assert_ok "workspace 3 -> HDMI-A-1" grep -qE 'HDMI-A-1' "$HYPR_DIR/monitors.lua"
+  # Only NVIDIA has a Vulkan driver here, so GTK4's default Vulkan renderer wakes the dGPU
+  # (~1.8s first paint). GL keeps GTK4 apps (swaync) on the AMD iGPU.
+  assert_ok "GTK4 uses the GL renderer" grep -qE 'hl\.env\("GSK_RENDERER", "gl"\)' "$HYPR_DIR/env.lua"
+  assert_ok "GSK_RENDERER exported to systemd/dbus services" grep -qE 'dbus-update-activation-environment.*GSK_RENDERER' "$HYPR_DIR/autostart.lua"
 }
 # Live checks: need the running compositor to be 0.57 with this config (after reboot).
 check_hyprlive() {
@@ -305,6 +309,7 @@ check_idle() {
   done
   assert_ok "hypridle running" pgrep -x hypridle
   assert_ok "swaync running" pgrep -x swaync
+  assert_fail "swaync doesn't render on the NVIDIA dGPU" bash -c 'ls -l /proc/$(pgrep -x swaync)/fd | grep -q /dev/nvidia'
   assert_ok "swaync reloads config + css" bash -c "swaync-client -R && swaync-client -rs"
   assert_link "$HOME/.config/swaync"
   assert_eq "$(jq -r '.widgets[:2] | join(",")' "$HOME/.config/swaync/config.json")" "volume,backlight" "panel starts with volume + brightness sliders"
